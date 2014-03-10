@@ -1,0 +1,190 @@
+
+
+source("~/Projects/Bochra_klassifikation/Scripts/make_feature_dataframe.R")
+
+library(MASS)
+library(glmnet)
+
+
+model.meanData <- polr(group~value, Hess=TRUE, data=meanData)
+pred.meanData <- predict(model.meanData, meanData, type="p")
+
+model.mean <- polr(group ~ value, Hess=TRUE, data = data)
+model.mean2 <-update(model.mean, .~. + condition)
+
+model.max <- polr(group ~ value, Hess=TRUE, data=maxDataMean)
+summary(model.max)
+
+pred.max <- predict(model.max, maxDataMean, type="p")
+print(pred.max)
+
+model.std <- polr(group ~ value, Hess=TRUE, data=stdDataMean)
+summary(model.std)
+pred.std <- predict(model.std, stdDataMean, type="p")
+print(pred.std)
+
+model.time <- polr(group ~ value, Hess=TRUE, data=timeDataMean)
+summary(model.time)
+pred.time <- predict(model.time, timeDataMean, type="p")
+print(pred.time)
+
+
+dataCombine <- cbind(maxDataMean, stdDataMean$value, timeDataMean$value)
+names(dataCombine) <- c("subId", "max", "group", "std", "time")
+
+model.comb <- polr(group ~ max + std + time, Hess = TRUE, data = dataCombine)
+summary(model.comb)
+pred.comb <- predict(model.comb, dataCombine, type="probs")
+print(pred.comb)
+
+dataStandard <- dataCombine
+dataStandard$max <- scale(dataStandard$max)
+dataStandard$std <- scale(dataStandard$std)
+dataStandard$time <- scale(dataStandard$time)
+
+
+model.stand <- polr(group ~ max + std + time, Hess = TRUE, data = dataStandard)
+summary(model.stand)
+pred.stand <- predict(model.stand, dataStandard, type="probs")
+print(pred.stand)
+
+
+
+
+
+
+rank_order <- function(predictions) {
+    names_frame <- matrix(nrow=dim(predictions)[1],
+                          ncol = dim(predictions)[2])
+    names_frame <- as.data.frame(names_frame)
+
+    for (i  in seq(predictions[,1])) {
+        foo <- sort(-predictions[i,])
+        names_frame[i,] <- names(foo)
+    }
+    
+    return(names_frame)
+    }
+
+(
+    
+names_frame$correct <- group
+names(names_frame) <- c("1", "2", "3", "4", "correct")
+
+
+#### multi reg 
+
+dataCombine$group <- relevel(dataCombine$group, ref="control")
+group <- dataCombine$group
+
+
+
+test_mean_null <- multinom(group ~ 1 , data = dataCombine)
+test_mean_max <- multinom(group ~ max, data = dataCombine)
+test_mean_std <- multinom(group ~ std, data = dataCombine)
+test_mean_time <- multinom(group ~ time, data = dataCombine)
+test_mean_max_std <- multinom(group ~ max + std, data = dataCombine)
+test_mean_max_time <- update(test_mean_max, .~. + time)
+test_mean_std_time <- update(test_mean_std, .~. + time)
+test_mean_max_std_time <- update(test_mean_max_std, .~. + time)
+
+anova(test_mean_null, test_mean_max, test_mean_std, test_mean_time, test_mean_max_std,
+      test_mean_max_time, test_mean_std_time, test_mean_max_std_time)
+
+pred.mean_max_std <- predict(test_mean_max_std, dataCombine, Type="class", se= TRUE)
+print(pred.mean_max_std)
+
+table(pred.mean_max_std, group)
+mean(pred.mean_max_std == group)     
+
+pred.mean_max_std_time <- predict(test_mean_max_std_time, dataCombine, type="class")
+print(pred.mean_max_std_time)
+
+table(pred.mean_max_std_time, group)
+mean(pred.mean_max_std_time == group)     
+
+
+
+
+z <- summary(test_mean_max_std)$coefficients/summary(test_mean_max_std)$standard.errors
+z
+
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+
+head(pp <- fitted(test_mean_max_std))
+
+lpp <- melt(pp.write, id.vars = c("max", "std"), value.name = "probability")
+head(lpp)  # view first few rows
+
+
+
+
+test_max<- multinom(group ~ Drt_max + Frq_max + Gap_max + Int_max + Spc_max
+                 , data = dataWide)
+pred.max <- predict(test_max, dataWide, "probs")
+
+
+test_std <- multinom(group ~ Drt_std + Frq_std + Gap_std + Int_std + Spc_std
+                 , data = dataWide)
+pred.std <- predict(test_std, dataWide, "probs")
+
+test_time <- multinom(group ~ Drt_time + Frq_time + Gap_time + Int_time + Spc_time
+                 , data = dataWide)
+pred.time <- predict(test_time, dataWide, "probs")
+ 
+
+test_max_std <- multinom(group ~ Drt_max + Frq_max + Gap_max + Int_max + Spc_max +
+                 Drt_std + Frq_std + Gap_std + Int_std + Spc_std
+                 , data = dataWide)
+class.pred.max_std <- predict(test_max_std, dataWide, "class")
+
+
+test_all <- multinom(group ~ Drt_max + Frq_max + Gap_max + Int_max + Spc_max +
+                 Drt_std + Frq_std + Gap_std + Int_std + Spc_std +
+                 Drt_time + Frq_time + Gap_time + Int_time + Spc_time
+                 , data = dataWide)
+pred.all <- predict(test_all, dataWide, "probs")
+
+
+table(class.pred.max_std,  group)
+
+result <- matrix(nrow = 28, ncol = 1)
+result <- as.data.frame(result)
+
+for (i in seq(dataCombine[,1])) {
+    test_data <- dataCombine[i,]
+    train_data <- dataCombine[-i,]
+    train_model <- multinom(group ~ max + std, data = train_data)
+    result[i,] <- predict(train_model, test_data, type = "class")
+}
+
+
+#### glmnet ####
+x.data <- dataWide[, -19:-20]
+x.data <- as.matrix(x.data)
+y.data <-  dataCombine$group
+
+model.glmnet  <- glmnet(x.data, y.data, family = "multinomial")
+
+cv.model.glmnet  <- cv.glmnet(x.data, y.data, family = "multinomial")
+
+pred.glmnet <- predict(model.glmnet, newx = x.data, type = "class")
+
+predict(cv.model.glmnet, newx = x.data, s = "lambda.min", type = "class")
+
+
+####  Library(ggplot2)
+
+mmnXvalue <- ggplot(subset(data, condition == "std"), aes(deviant, value)) +
+    geom_point(aes(color=group))
+ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
+
+ggplot(subset(data, condition == "time"), aes(deviant, value)) +
+    geom_point(aes(color=group))
+ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
+       
+mmnXvalue_time<- ggplot(subset(data, condition == "time"), aes(deviant, value)) +
+    geom_point(aes(color=group)) 
+ggsave(mmnXvalue_time, file="mmnXvalue_time.jpg", dpi = 600)
+ 
