@@ -74,7 +74,7 @@ names(names_frame) <- c("1", "2", "3", "4", "correct")
 
 #### multi reg 
 
-dataCombine$group <- relevel(dataCombine$group, ref="control")
+dataCombine$group <- relevel(dataCombine$group, ref="coma")
 group <- dataCombine$group
 
 
@@ -144,7 +144,7 @@ test_all <- multinom(group ~ Drt_max + Frq_max + Gap_max + Int_max + Spc_max +
                  Drt_std + Frq_std + Gap_std + Int_std + Spc_std +
                  Drt_time + Frq_time + Gap_time + Int_time + Spc_time
                  , data = dataWide)
-pred.all <- predict(test_all, dataWide, "probs")
+pred.all <- predict(test_all, dataWide, "class")
 
 
 table(class.pred.max_std,  group)
@@ -152,10 +152,22 @@ table(class.pred.max_std,  group)
 result <- matrix(nrow = 28, ncol = 1)
 result <- as.data.frame(result)
 
-for (i in seq(dataCombine[,1])) {
+for (i in seq(dataWide[,1])) {
     test_data <- dataCombine[i,]
     train_data <- dataCombine[-i,]
     train_model <- multinom(group ~ max + std, data = train_data)
+    result[i,] <- predict(train_model, test_data, type = "class")
+}
+
+
+for (i in seq(dataWide[,1])) {
+    test_data <- dataWide[i,]
+    train_data <- dataWide[-i,]
+    train_model <- multinom(group ~
+                            Drt_max + Frq_max + Gap_max + Int_max + Spc_max +
+                            Drt_std + Frq_std + Gap_std + Int_std + Spc_std +
+                            Drt_time + Frq_time + Gap_time + Int_time + Spc_time,
+                            data  = train_data)
     result[i,] <- predict(train_model, test_data, type = "class")
 }
 
