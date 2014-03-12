@@ -1,10 +1,12 @@
 
 
+set.seed(42)
+
 source("~/Projects/Bochra_klassifikation/Scripts/make_feature_dataframe.R")
 
 library(MASS)
 library(glmnet)
-
+library(nnet)
 
 model.meanData <- polr(group~value, Hess=TRUE, data=meanData)
 pred.meanData <- predict(model.meanData, meanData, type="p")
@@ -42,7 +44,6 @@ dataStandard$max <- scale(dataStandard$max)
 dataStandard$std <- scale(dataStandard$std)
 dataStandard$time <- scale(dataStandard$time)
 
-
 model.stand <- polr(group ~ max + std + time, Hess = TRUE, data = dataStandard)
 summary(model.stand)
 pred.stand <- predict(model.stand, dataStandard, type="probs")
@@ -66,7 +67,7 @@ rank_order <- function(predictions) {
     return(names_frame)
     }
 
-(
+
     
 names_frame$correct <- group
 names(names_frame) <- c("1", "2", "3", "4", "correct")
@@ -80,10 +81,10 @@ group <- dataCombine$group
 
 
 test_mean_null <- multinom(group ~ 1 , data = dataCombine)
-test_mean_max <- multinom(group ~ max, data = dataCombine)
-test_mean_std <- multinom(group ~ std, data = dataCombine)
-test_mean_time <- multinom(group ~ time, data = dataCombine)
-test_mean_max_std <- multinom(group ~ max + std, data = dataCombine)
+test_mean_max <- update(test_mean_null, .~. + max)
+test_mean_std <- update(test_mean_null, .~. + std)
+test_mean_time <- update(test_mean_null, .~. + time)
+test_mean_max_std <- update(test_mean_max, .~. + std)
 test_mean_max_time <- update(test_mean_max, .~. + time)
 test_mean_std_time <- update(test_mean_std, .~. + time)
 test_mean_max_std_time <- update(test_mean_max_std, .~. + time)
@@ -168,22 +169,45 @@ for (i in seq(dataWide[,1])) {
                             Drt_std + Frq_std + Gap_std + Int_std + Spc_std +
                             Drt_time + Frq_time + Gap_time + Int_time + Spc_time,
                             data  = train_data)
-    result[i,] <- predict(train_model, test_data, type = "class")
+    result[i,] <- predict(train_model, test_data, type = "response")
 }
 
 
 #### glmnet ####
-x.data <- dataWide[, -19:-20]
-x.data <- as.matrix(x.data)
-y.data <-  dataCombine$group
+X <- dataWide[,1:18]
+X <- as.matrix(X)
+y <-  dataWide$group
 
-model.glmnet  <- glmnet(x.data, y.data, family = "multinomial")
+cv.model.glmnet  <- cv.glmnet(X, y,
+                              family = "multinomial",
+                              alpha = 0,
+                              nfolds = 10,
+                              standardize = FALSE)
 
-cv.model.glmnet  <- cv.glmnet(x.data, y.data, family = "multinomial")
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
 
-pred.glmnet <- predict(model.glmnet, newx = x.data, type = "class")
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
 
-predict(cv.model.glmnet, newx = x.data, s = "lambda.min", type = "class")
+x.comb <- dataCombine[, -1]
+x.comb <- x.comb[, -2]
+x.comb <- as.matrix(x.comb)
+
+model.mean <- glmnet(x.comb, dataCombine$group,
+                     family = "multinomial",
+                     alpha = 1,
+                     standardize = FALSE)
+
+cvfit = cv.glmnet(x.comb, y,
+                    family = "multinomial",
+                    nfolds = 10,
+                    alpha = 0,
+                    standardize = FALSE)
+
+(pred.mean <- predict(cvfit, newx = x.comb,  s = "lambda.min", type = "class"))
+
+(mean(pred.mean == dataCombine$group))
+table(pred.mean, dataCombine$group)
 
 
 ####  Library(ggplot2)
