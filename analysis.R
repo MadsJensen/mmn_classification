@@ -210,6 +210,10 @@ cvfit = cv.glmnet(x.comb, y,
 table(pred.mean, dataCombine$group)
 
 
+#### fit different MMN type ####
+
+
+
 ####  Library(ggplot2)
 
 mmnXvalue <- ggplot(subset(data, condition == "std"), aes(deviant, value)) +
