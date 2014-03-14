@@ -88,9 +88,10 @@ test_mean_max_std <- update(test_mean_max, .~. + std)
 test_mean_max_time <- update(test_mean_max, .~. + time)
 test_mean_std_time <- update(test_mean_std, .~. + time)
 test_mean_max_std_time <- update(test_mean_max_std, .~. + time)
+test_all <- multinom(group ~ max*std*time, data = dataCombine)
 
 anova(test_mean_null, test_mean_max, test_mean_std, test_mean_time, test_mean_max_std,
-      test_mean_max_time, test_mean_std_time, test_mean_max_std_time)
+      test_mean_max_time, test_mean_std_time, test_mean_max_std_time, test_all)
 
 pred.mean_max_std <- predict(test_mean_max_std, dataCombine, Type="class", se= TRUE)
 print(pred.mean_max_std)
@@ -178,14 +179,18 @@ X <- dataWide[,1:18]
 X <- as.matrix(X)
 y <-  dataWide$group
 
+
+model.glmnet <- glmnet(X, y,
+                       family = "multinomial",
+                       alpha = 0,
+                       standardize = TRUE)
+
 cv.model.glmnet  <- cv.glmnet(X, y,
                               family = "multinomial",
                               alpha = 0,
                               nfolds = 10,
-                              standardize = FALSE)
-
+                              standardize = TRUE)
 (pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
-
 (mean(pred.glmnet == y))
 table(pred.glmnet, y)
 
@@ -201,7 +206,7 @@ model.mean <- glmnet(x.comb, dataCombine$group,
 cvfit = cv.glmnet(x.comb, y,
                     family = "multinomial",
                     nfolds = 10,
-                    alpha = 0,
+                    alpha = 1,
                     standardize = FALSE)
 
 (pred.mean <- predict(cvfit, newx = x.comb,  s = "lambda.min", type = "class"))
@@ -214,17 +219,22 @@ table(pred.mean, dataCombine$group)
 
 
 
-####  Library(ggplot2)
+library(ggplot2)
 
-mmnXvalue <- ggplot(subset(data, condition == "std"), aes(deviant, value)) +
+ggplot(subset(data, condition == "max"), aes(deviant, value)) +
     geom_point(aes(color=group))
-ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
+## ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
 
-ggplot(subset(data, condition == "time"), aes(deviant, value)) +
+ggplot(subset(data, condition == "std"), aes(deviant, value)) +
     geom_point(aes(color=group))
-ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
+## ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
        
-mmnXvalue_time<- ggplot(subset(data, condition == "time"), aes(deviant, value)) +
-    geom_point(aes(color=group)) 
-ggsave(mmnXvalue_time, file="mmnXvalue_time.jpg", dpi = 600)
+ggplot(subset(data, condition == "time"), aes(deviant, value)) +
+    geom_point(aes(color=group, pch=group)) 
+## ggsave(mmnXvalue_time, file="mmnXvalue_time.jpg", dpi = 600)
  
+
+
+ggplot(subset(data, condition != "time"), aes(deviant, value)) +
+    geom_point(aes(color=group))+
+    facet_grid(~condition)
