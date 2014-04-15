@@ -93,7 +93,7 @@ test_all <- multinom(group ~ max*std*time, data = dataCombine)
 anova(test_mean_null, test_mean_max, test_mean_std, test_mean_time, test_mean_max_std,
       test_mean_max_time, test_mean_std_time, test_mean_max_std_time, test_all)
 
-pred.mean_max_std <- predict(test_mean_max_std, dataCombine, Type="class", se= TRUE)
+pred.mean_max_std <- predict(test_mean_max_std, dataCombine, Type="class", se=TRUE)
 print(pred.mean_max_std)
 
 table(pred.mean_max_std, group)
