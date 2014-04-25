@@ -24,7 +24,8 @@ cv.model.glmnet  <- cv.glmnet(X, y,
                               alpha = .5,
                               nfolds = 10,
                               standardize = F)
-(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "response"))
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min",
+                       type = "response"))
 
 
 (mean(pred.glmnet == y))
