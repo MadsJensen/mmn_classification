@@ -4,7 +4,7 @@ library(MASS)
 library(stringr)
 
 ## set working directory
-setwd("/home/mje/Projects/Bochra_klassifikation/Data/ny_data")
+setwd("/home/mje/Projects/mmn_classification/Data")
 
 # load csv files
 temp = list.files(pattern="*.csv")

@@ -2,7 +2,7 @@
 
 set.seed(42)
 
-source("~/Projects/Bochra_klassifikation/Scripts/make_feature_dataframe.R")
+source("/home/mje/Projects/mmn_classification/make_feature_dataframe.R")
 
 library(MASS)
 library(glmnet)
@@ -182,59 +182,126 @@ y <-  dataWide$group
 
 model.glmnet <- glmnet(X, y,
                        family = "multinomial",
-                       alpha = 0,
-                       standardize = TRUE)
+                       alpha = 1,
+                       standardize = TRUE,
+                       lambda = cv.model.glmnet$lambda.min)
+(pred.glmnet <- predict(model.glmnet, newx = X, type = "class"))
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
 
 cv.model.glmnet  <- cv.glmnet(X, y,
                               family = "multinomial",
-                              alpha = 0,
-                              nfolds = 10,
+                              alpha = 1,
+                              nfolds = 29,
                               standardize = TRUE)
 (pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
 (mean(pred.glmnet == y))
 table(pred.glmnet, y)
 
-x.comb <- dataCombine[, -1]
-x.comb <- x.comb[, -2]
-x.comb <- as.matrix(x.comb)
 
-model.mean <- glmnet(x.comb, dataCombine$group,
-                     family = "multinomial",
-                     alpha = 1,
-                     standardize = FALSE)
+#### DRT ####
 
-cvfit = cv.glmnet(x.comb, y,
-                    family = "multinomial",
-                    nfolds = 10,
-                    alpha = 1,
-                    standardize = FALSE)
-
-(pred.mean <- predict(cvfit, newx = x.comb,  s = "lambda.min", type = "class"))
-
-(mean(pred.mean == dataCombine$group))
-table(pred.mean, dataCombine$group)
+X <- dataWide[,1:3]
+X <- as.matrix(X)
+cv.model.glmnet  <- cv.glmnet(X, y,
+                              family = "multinomial",
+                              alpha = 0,
+                              nfolds = 29,
+                              standardize = TRUE)
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
 
 
-#### fit different MMN type ####
+X <- dataWide[,4:6]
+X <- as.matrix(X)
+cv.model.glmnet  <- cv.glmnet(X, y,
+                              family = "multinomial",
+                              alpha = 0,
+                              nfolds = 29,
+                              standardize = TRUE)
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
+
+X <- dataWide[,7:9]
+X <- as.matrix(X)
+cv.model.glmnet  <- cv.glmnet(X, y,
+                              family = "multinomial",
+                              alpha = 0,
+                              nfolds = 29,
+                              standardize = TRUE)
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
+
+X <- dataWide[,10:12]
+X <- as.matrix(X)
+cv.model.glmnet  <- cv.glmnet(X, y,
+                              family = "multinomial",
+                              alpha = 0,
+                              nfolds = 29,
+                              standardize = TRUE)
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
+
+X <- dataWide[,13:15]
+X <- as.matrix(X)
+cv.model.glmnet  <- cv.glmnet(X, y,
+                              family = "multinomial",
+                              alpha = 0,
+                              nfolds = 29,
+                              standardize = TRUE)
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
 
 
-
-library(ggplot2)
-
-ggplot(subset(data, condition == "max"), aes(deviant, value)) +
-    geom_point(aes(color=group))
-## ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
-
-ggplot(subset(data, condition == "std"), aes(deviant, value)) +
-    geom_point(aes(color=group))
-## ggsave(mmnXvalue, file="mmnXvalue_std.jpg", dpi = 600)
-       
-ggplot(subset(data, condition == "time"), aes(deviant, value)) +
-    geom_point(aes(color=group, pch=group)) 
-## ggsave(mmnXvalue_time, file="mmnXvalue_time.jpg", dpi = 600)
- 
+X <- dataWide[,16:18]
+X <- as.matrix(X)
+cv.model.glmnet  <- cv.glmnet(X, y,
+                              family = "multinomial",
+                              alpha = 0,
+                              nfolds = 29,
+                              standardize = TRUE)
+(pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
+(mean(pred.glmnet == y))
+table(pred.glmnet, y)
 
 
-ggplot(subset(data, condition != "time"), aes(deviant, value)) +
-    geom_point(aes(color=group))+
-    facet_grid(~condition)
+#### Permutation test ####
+    X <- dataWide[,1:18]
+    X <- as.matrix(X)
+    y <-  dataWide$group
+    
+    cv.model.glmnet  <- cv.glmnet(X, y,
+                                  family = "multinomial",
+                                  alpha = 1,
+                                  nfolds = 29,
+                                  standardize = TRUE)
+    pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class")
+    pred_score = mean(pred.glmnet == y)
+    
+    number_of_permutations = 2000
+    
+    perm_score = NULL
+    for (i in 1 : number_of_permutations) {
+        
+        # Sample from the combined dataset
+        y.random = sample (y, replace = FALSE)
+        
+        cv.model.glmnet  <- cv.glmnet(X, y.random,
+                                      family = "multinomial",
+                                      alpha = 0,
+                                      nfolds = 29,
+                                      standardize = TRUE)
+        pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class")
+        perm_score[i]  = mean(pred.glmnet == y.random)
+        
+    }
+    
+    # P-value is the fraction of how many times the permuted difference is equal or more extreme than the observed difference
+    
+    pvalue = sum(abs(perm_score) >= abs(pred_score)) / number_of_permutations
+    print (pvalue)

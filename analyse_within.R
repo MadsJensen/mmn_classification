@@ -23,7 +23,7 @@ cv.model.glmnet  <- cv.glmnet(X, y,
                               family = "multinomial",
                               alpha = .5,
                               nfolds = 10,
-                              standardize = F)
+                              standardize = TRUE)
 (pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min",
                        type = "response"))
 
