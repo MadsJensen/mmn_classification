@@ -183,17 +183,18 @@ y <-  dataWide$group
 model.glmnet <- glmnet(X, y,
                        family = "multinomial",
                        alpha = 1,
-                       standardize = TRUE,
-                       lambda = cv.model.glmnet$lambda.min)
+                       standardize = FALSE,
+                       )
 (pred.glmnet <- predict(model.glmnet, newx = X, type = "class"))
 (mean(pred.glmnet == y))
 table(pred.glmnet, y)
 
 cv.model.glmnet  <- cv.glmnet(X, y,
-                              family = "multinomial",
-                              alpha = 1,
-                              nfolds = 29,
-                              standardize = TRUE)
+    family = "multinomial",
+    alpha = 0.4,
+#   nfolds = 29,
+    type.measure="mse",
+    standardize = FALSE)
 (pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class"))
 (mean(pred.glmnet == y))
 table(pred.glmnet, y)
@@ -277,13 +278,14 @@ table(pred.glmnet, y)
     
     cv.model.glmnet  <- cv.glmnet(X, y,
                                   family = "multinomial",
-                                  alpha = 1,
-                                  nfolds = 29,
-                                  standardize = TRUE)
+                                  alpha = 0.5,
+                                  #   nfolds = 29,
+                                  type.measure="mse",
+                                  standardize = FALSE)
     pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class")
     pred_score = mean(pred.glmnet == y)
     
-    number_of_permutations = 2000
+    number_of_permutations = 1000
     
     perm_score = NULL
     for (i in 1 : number_of_permutations) {
@@ -291,11 +293,12 @@ table(pred.glmnet, y)
         # Sample from the combined dataset
         y.random = sample (y, replace = FALSE)
         
-        cv.model.glmnet  <- cv.glmnet(X, y.random,
+        cv.model.glmnet  <- cv.glmnet(X, y,
                                       family = "multinomial",
-                                      alpha = 0,
-                                      nfolds = 29,
-                                      standardize = TRUE)
+                                      alpha = 0.5,
+                                      #   nfolds = 29,
+                                      type.measure="mse",
+                                      standardize = FALSE)
         pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class")
         perm_score[i]  = mean(pred.glmnet == y.random)
         
@@ -303,5 +306,21 @@ table(pred.glmnet, y)
     
     # P-value is the fraction of how many times the permuted difference is equal or more extreme than the observed difference
     
-    pvalue = sum(abs(perm_score) >= abs(pred_score)) / number_of_permutations
+    pvalue = sum(abs(perm_score) >= abs(pred_score)) / length(perm_score)
     print (pvalue)
+
+
+
+j = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 0.9, 1)
+pred_score = NULL
+for (i in 1 : length(j)){
+    cv.model.glmnet  <- cv.glmnet(X, y,
+                                  family = "multinomial",
+                                  alpha = j[i],
+                                  type.measure="mse",
+#                                   nfolds = 29,
+                                  standardize = FALSE)
+    pred.glmnet <- predict(cv.model.glmnet, newx = X, s = "lambda.min", type = "class")
+    pred_score[i] = mean(pred.glmnet == y)
+}
+
